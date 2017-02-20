@@ -6,7 +6,7 @@
 #include <sys/time.h>
 #include <unistd.h>
 
-#define NTRIALS 20
+#define NTRIALS 100
 
 #define FILTER_BYTES 10*sizeof(char)
 
@@ -67,16 +67,16 @@ char* random_filter() {
     k[6] =  1; k[7] =  2; k[8] =  1;
     k[9] = 16;
     return k;
-  default: 
+  default:
     assert(0);
-  }  
+  }
   return 0;
 }
 
 void print_image(pixel* img, uint nrows, uint ncols) {
   for (int i = 0; i < nrows*ncols; i++) {
     printf("(%3d,%3d,%3d) ",img[i].R,img[i].G,img[i].B);
-    if ((i+1) % ncols == 0) { 
+    if ((i+1) % ncols == 0) {
       printf("\n");
     }
   }
@@ -114,19 +114,19 @@ void conv_ref(uint nrows, uint ncols, pixel* in, char* filt, pixel* out) {
       uint sum_B = 0;
 
       for (int dc = -1; dc <= 1; dc++) {
-	for (int dr = -1; dr <= 1; dr++) {
-	  int cc = c+dc;
-	  int rr = r+dr;
-	  if (rr >= 0 && cc >= 0 && rr < nrows && cc < ncols) {
-	    uint x = ncols*rr+cc;
-	    uint y = 3*(dc+1)+(dr+1);
-	    assert(x < ncols*nrows);
-	    assert(y < FILTER_BYTES);
-	    sum_R += in[x].R * filt[y];
-	    sum_G += in[x].G * filt[y];
-	    sum_B += in[x].B * filt[y];
-	  }
-	}
+    	for (int dr = -1; dr <= 1; dr++) {
+    	  int cc = c+dc;
+    	  int rr = r+dr;
+    	  if (rr >= 0 && cc >= 0 && rr < nrows && cc < ncols) {
+    	    uint x = ncols*rr+cc;
+    	    uint y = 3*(dc+1)+(dr+1);
+    	    assert(x < ncols*nrows);
+    	    assert(y < FILTER_BYTES);
+    	    sum_R += in[x].R * filt[y];
+    	    sum_G += in[x].G * filt[y];
+    	    sum_B += in[x].B * filt[y];
+    	  }
+    	}
       }
 
       uint x = ncols*r+c;
@@ -194,7 +194,7 @@ int main(int argc, char** argv) {
       pixel* out_ref = alloc_image(nrows,ncols);
       pixel* out_opt = alloc_image(nrows,ncols);
 
-      // run reference 
+      // run reference
       start = curr_ms();
       conv_ref(nrows,ncols,in_ref,filt_ref,out_ref);
       stop = curr_ms();
@@ -206,7 +206,7 @@ int main(int argc, char** argv) {
       stop = curr_ms();
       sum_opt += (stop-start);
 
-      // check correctness of the optimized version 
+      // check correctness of the optimized version
       assert(memcmp(in_ref,in_opt,image_bytes) == 0);
       assert(memcmp(filt_ref,filt_opt,FILTER_BYTES) == 0);
       assert(memcmp(out_ref,out_opt,image_bytes) == 0);
@@ -214,12 +214,12 @@ int main(int argc, char** argv) {
       // free memory
       free(in_ref);
       free(in_opt);
-      free(filt_ref);      
-      free(filt_opt);      
+      free(filt_ref);
+      free(filt_opt);
       free(out_ref);
       free(out_opt);
     }
-    
+
     // report times and speedup
     ulong ref_ms = sum_ref/NTRIALS;
     ulong opt_ms = sum_opt/NTRIALS;
@@ -230,7 +230,7 @@ int main(int argc, char** argv) {
     speedup_sum += speedup;
     nimages++;
   }
-  
+
   printf("Average speedup: %.2f\n", speedup_sum/nimages);
   return 0;
 }
