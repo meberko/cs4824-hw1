@@ -1,6 +1,13 @@
-void conv_optt(uint nrows, uint ncols, pixel* in, char* filt, pixel* out) {
-    for (int r = 0; r < nrows; r++) {
-      for (int c = 0; c < ncols; c++) {
+uint image_bytes = nrows*ncols*sizeof(pixel);
+char* id = alloc_filter();
+id[0] = 0; id[1] = 0; id[2] = 0;
+id[3] = 0; id[4] = 1; id[5] = 0;
+id[6] = 0; id[7] = 0; id[8] = 0;
+id[9] = 1;
+if(memcmp(id, filt, FILTER_BYTES) == 0) memcpy(out, in, image_bytes);
+else {
+    for (int r = nrows-1; r >= 0; r--) {
+      for (int c = ncols-1; c >= 0; c--) {
         uint sum_R = 0;
         uint sum_G = 0;
         uint sum_B = 0;
@@ -8,118 +15,104 @@ void conv_optt(uint nrows, uint ncols, pixel* in, char* filt, pixel* out) {
         uint x = 0;
         uint y = 0;
         uint f = 0;
-        int cc0 = c - 1;
-        int rr0 = r - 1;
-        int cc1 = c;
-        int rr1 = r;
-        int cc2 = c + 1;
-        int rr2 = r + 1;
 
         // Top Left
-        if (rr0 >= 0 && cc0 >= 0) {
-            x = ncols*rr0+cc0;
+        if (__builtin_expect((r-1) >= 0 && (c-1) >= 0, 1)) {
+            x = ncols*(r-1)+(c-1);
             y = 0;
             assert(x < ncols*nrows);
             assert(y < FILTER_BYTES);
-            f = filt[y];
-            sum_R += in[x].R * f;
-            sum_G += in[x].G * f;
-            sum_B += in[x].B * f;
-        }
-
-        // Center Left
-        if(cc0 >= 0) {
-            x = ncols*rr1+cc0;
-            y = 1;
-            assert(x < ncols*nrows);
-            assert(y < FILTER_BYTES);
-            f = filt[y];
-            sum_R += in[x].R * f;
-            sum_G += in[x].G * f;
-            sum_B += in[x].B * f;
-        }
-
-        // Bottom Left
-        if(rr2 < nrows && cc0 >= 0) {
-            x = ncols*rr2+cc0;
-            y = 2;
-            assert(x < ncols*nrows);
-            assert(y < FILTER_BYTES);
-            f = filt[y];
-            sum_R += in[x].R * f;
-            sum_G += in[x].G * f;
-            sum_B += in[x].B * f;
+            sum_R += in[x].R * filt[y];
+            sum_G += in[x].G * filt[y];
+            sum_B += in[x].B * filt[y];
         }
 
         // Top Center
-        if(rr0 >= 0) {
-            x = ncols*rr0+cc1;
+        if(__builtin_expect((r-1) >= 0, 1)) {
+            x = ncols*(r-1)+c;
             y = 3;
             assert(x < ncols*nrows);
             assert(y < FILTER_BYTES);
-            f = filt[y];
-            sum_R += in[x].R * f;
-            sum_G += in[x].G * f;
-            sum_B += in[x].B * f;
+            sum_R += in[x].R * filt[y];
+            sum_G += in[x].G * filt[y];
+            sum_B += in[x].B * filt[y];
 
-        }
-
-        // Center
-        x = ncols*rr1+cc1;
-        y = 4;
-        assert(x < ncols*nrows);
-        assert(y < FILTER_BYTES);
-        f = filt[y];
-        sum_R += in[x].R * f;
-        sum_G += in[x].G * f;
-        sum_B += in[x].B * f;
-
-        // Bottom Center
-        if(rr2 < nrows) {
-            x = ncols*rr2+cc1;
-            y = 5;
-            assert(x < ncols*nrows);
-            assert(y < FILTER_BYTES);
-            f = filt[y];
-            sum_R += in[x].R * f;
-            sum_G += in[x].G * f;
-            sum_B += in[x].B * f;
         }
 
         // Top Right
-        if(rr0 >= 0 && cc2 < ncols) {
-            x = ncols*rr0+cc2;
+        if(__builtin_expect((r-1) >= 0 && (c+1) < ncols, 1)) {
+            x = ncols*(r-1)+(c+1);
             y = 6;
             assert(x < ncols*nrows);
             assert(y < FILTER_BYTES);
-            f = filt[y];
-            sum_R += in[x].R * f;
-            sum_G += in[x].G * f;
-            sum_B += in[x].B * f;
+            sum_R += in[x].R * filt[y];
+            sum_G += in[x].G * filt[y];
+            sum_B += in[x].B * filt[y];
         }
 
+        // Center Left
+        if(__builtin_expect((c-1) >= 0, 1)) {
+            x = ncols*r+(c-1);
+            y = 1;
+            assert(x < ncols*nrows);
+            assert(y < FILTER_BYTES);
+            sum_R += in[x].R * filt[y];
+            sum_G += in[x].G * filt[y];
+            sum_B += in[x].B * filt[y];
+        }
+
+        // Center
+        x = ncols*r+c;
+        y = 4;
+        assert(x < ncols*nrows);
+        assert(y < FILTER_BYTES);
+        sum_R += in[x].R * filt[y];
+        sum_G += in[x].G * filt[y];
+        sum_B += in[x].B * filt[y];
+
         // Center Right
-        if(cc2 < ncols) {
-            x = ncols*rr1+cc2;
+        if(__builtin_expect((c+1) < ncols, 1)) {
+            x = ncols*r+(c+1);
             y = 7;
             assert(x < ncols*nrows);
             assert(y < FILTER_BYTES);
-            f = filt[y];
-            sum_R += in[x].R * f;
-            sum_G += in[x].G * f;
-            sum_B += in[x].B * f;
+            sum_R += in[x].R * filt[y];
+            sum_G += in[x].G * filt[y];
+            sum_B += in[x].B * filt[y];
         }
 
         // Bottom Left
-        if(rr2 < nrows && cc2 < ncols) {
-            x = ncols*rr2+cc2;
+        if(__builtin_expect((r+1) < nrows && (c-1) >= 0, 1)) {
+            x = ncols*(r+1)+(c-1);
+            y = 2;
+            assert(x < ncols*nrows);
+            assert(y < FILTER_BYTES);
+            sum_R += in[x].R * filt[y];
+            sum_G += in[x].G * filt[y];
+            sum_B += in[x].B * filt[y];
+        }
+
+        // Bottom Center
+        if(__builtin_expect((r+1) < nrows, 1)) {
+            x = ncols*(r+1)+c;
+            y = 5;
+            assert(x < ncols*nrows);
+            assert(y < FILTER_BYTES);
+            sum_R += in[x].R * filt[y];
+            sum_G += in[x].G * filt[y];
+            sum_B += in[x].B * filt[y];
+        }
+
+
+        // Bottom Right
+        if(__builtin_expect((r+1) < nrows && (c+1) < ncols, 1)) {
+            x = ncols*(r+1)+(c+1);
             y = 8;
             assert(x < ncols*nrows);
             assert(y < FILTER_BYTES);
-            f = filt[y];
-            sum_R += in[x].R * f;
-            sum_G += in[x].G * f;
-            sum_B += in[x].B * f;
+            sum_R += in[x].R * filt[y];
+            sum_G += in[x].G * filt[y];
+            sum_B += in[x].B * filt[y];
         }
 
         x = ncols*r+c;
@@ -127,9 +120,6 @@ void conv_optt(uint nrows, uint ncols, pixel* in, char* filt, pixel* out) {
         out[x].R = (float) sum_R / d;
         out[x].G = (float) sum_G / d;
         out[x].B = (float) sum_B / d;
-
       }
     }
 }
-
-conv_optt(nrows, ncols, in, filt, out);
