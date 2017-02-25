@@ -152,7 +152,6 @@ ulong curr_ms() {
   return ms;
 }
 
-
 int main(int argc, char** argv) {
   // check command line
   if (argc < 4 || argc%2) {
