@@ -5,8 +5,9 @@
 //#include "time.h"
 #include <sys/time.h>
 #include <unistd.h>
+#include <time.h>
 
-#define NTRIALS 10
+#define NTRIALS 20
 
 #define FILTER_BYTES 10*sizeof(char)
 
@@ -67,16 +68,16 @@ char* random_filter() {
     k[6] =  1; k[7] =  2; k[8] =  1;
     k[9] = 16;
     return k;
-  default:
+  default: 
     assert(0);
-  }
+  }  
   return 0;
 }
 
 void print_image(pixel* img, uint nrows, uint ncols) {
   for (int i = 0; i < nrows*ncols; i++) {
     printf("(%3d,%3d,%3d) ",img[i].R,img[i].G,img[i].B);
-    if ((i+1) % ncols == 0) {
+    if ((i+1) % ncols == 0) { 
       printf("\n");
     }
   }
@@ -114,19 +115,19 @@ void conv_ref(uint nrows, uint ncols, pixel* in, char* filt, pixel* out) {
       uint sum_B = 0;
 
       for (int dc = -1; dc <= 1; dc++) {
-    	for (int dr = -1; dr <= 1; dr++) {
-    	  int cc = c+dc;
-    	  int rr = r+dr;
-    	  if (rr >= 0 && cc >= 0 && rr < nrows && cc < ncols) {
-    	    uint x = ncols*rr+cc;
-    	    uint y = 3*(dc+1)+(dr+1);
-    	    assert(x < ncols*nrows);
-    	    assert(y < FILTER_BYTES);
-    	    sum_R += in[x].R * filt[y];
-    	    sum_G += in[x].G * filt[y];
-    	    sum_B += in[x].B * filt[y];
-    	  }
-    	}
+      for (int dr = -1; dr <= 1; dr++) {
+        int cc = c+dc;
+        int rr = r+dr;
+        if (rr >= 0 && cc >= 0 && rr < nrows && cc < ncols) {
+          uint x = ncols*rr+cc;
+          uint y = 3*(dc+1)+(dr+1);
+          assert(x < ncols*nrows);
+          assert(y < FILTER_BYTES);
+          sum_R += in[x].R * filt[y];
+          sum_G += in[x].G * filt[y];
+          sum_B += in[x].B * filt[y];
+        }
+      }
       }
 
       uint x = ncols*r+c;
@@ -152,6 +153,12 @@ ulong curr_ms() {
   return ms;
 }
 
+// given two clock tick markers, returns number of 
+// seconds between start and end
+double cpu_time_used(clock_t start, clock_t end){
+  return ((double)(end-start)) / CLOCKS_PER_SEC;
+}
+
 int main(int argc, char** argv) {
   // check command line
   if (argc < 4 || argc%2) {
@@ -174,9 +181,10 @@ int main(int argc, char** argv) {
 
     uint image_bytes = nrows*ncols*sizeof(pixel);
 
-    unsigned long sum_ref = 0;
-    unsigned long sum_opt = 0;
-    ulong start, stop;
+    double sum_ref = 0;
+    double sum_opt = 0;
+    clock_t start;
+    clock_t stop;
     for (int j = 0; j < NTRIALS; j++) {
 
       // create random input image, one copy for each version
@@ -193,19 +201,19 @@ int main(int argc, char** argv) {
       pixel* out_ref = alloc_image(nrows,ncols);
       pixel* out_opt = alloc_image(nrows,ncols);
 
-      // run reference
-      start = curr_ms();
+      // run reference 
+      start = clock();
       conv_ref(nrows,ncols,in_ref,filt_ref,out_ref);
-      stop = curr_ms();
-      sum_ref += (stop-start);
-
+      stop = clock();
+      sum_ref += cpu_time_used(start, stop);
+	
       // run optimized
-      start = curr_ms();
+      start = clock();
       conv_opt(nrows,ncols,in_opt,filt_opt,out_opt);
-      stop = curr_ms();
-      sum_opt += (stop-start);
+      stop = clock();
+      sum_opt += cpu_time_used(start, stop);
 
-      // check correctness of the optimized version
+      // check correctness of the optimized version 
       assert(memcmp(in_ref,in_opt,image_bytes) == 0);
       assert(memcmp(filt_ref,filt_opt,FILTER_BYTES) == 0);
       assert(memcmp(out_ref,out_opt,image_bytes) == 0);
@@ -213,23 +221,23 @@ int main(int argc, char** argv) {
       // free memory
       free(in_ref);
       free(in_opt);
-      free(filt_ref);
-      free(filt_opt);
+      free(filt_ref);      
+      free(filt_opt);      
       free(out_ref);
       free(out_opt);
     }
-
+    
     // report times and speedup
-    ulong ref_ms = sum_ref/NTRIALS;
-    ulong opt_ms = sum_opt/NTRIALS;
+    double ref_ms = sum_ref/NTRIALS * 1000; //sec to msec
+    double opt_ms = sum_opt/NTRIALS * 1000;
     float speedup = (float)ref_ms/opt_ms;
-    printf("%4d x %4d\t%lu\t%lu\t%.2f\n",nrows,ncols,ref_ms,opt_ms,speedup);
+    printf("%4d x %4d\t%.2f\t%.2f\t%.2f\n",nrows,ncols,ref_ms,opt_ms,speedup);
 
     // accmulate average
     speedup_sum += speedup;
     nimages++;
   }
-
+  
   printf("Average speedup: %.2f\n", speedup_sum/nimages);
   return 0;
 }
